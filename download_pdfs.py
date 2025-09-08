@@ -1,82 +1,124 @@
 # %%
 import pandas as pd
 import argparse
-from requests import session
+import requests
+from requests import Session
 import csv
 import os
 import random
 import sys
+import time
 from pathlib import Path
-from progress_tracker2 import *
+from progress_tracking import *   # get_ack_id_year_from_path, unclaim_to, claim_n_any_year, etc.
 from credentials import USERNAME, PASSWORD
 from SETTINGS import *
-# %%
 
 PAYLOAD = {"action": "login", "username": USERNAME, "password": PASSWORD}
 
+def myLogin(payload=PAYLOAD) -> Session:
+    """
+    Log in to DOL servers and return a live requests.Session.
+    """
+    s = requests.Session()
+    s.post("https://www.askebsa.dol.gov/BulkFOIARequest/Account.aspx", data=payload)
+    return s
 
-def myLogin(payload=PAYLOAD):
+def download_file(pdf_url: str, save_pdf_path: Path, c: Session):
     """
-    log in to DOL servers
+    Download pdf file from DOL and save on drive.
     """
-    with session() as c:
-        c.post("https://www.askebsa.dol.gov/BulkFOIARequest/Account.aspx", data=payload)
-    return c
-
-
-def download_file(pdf_url, save_pdf_path, c):
-    """
-    download pdf file from DOL and save on drive
-    """
+    # refresh auth (cheap) then fetch
     c.post("https://www.askebsa.dol.gov/BulkFOIARequest/Account.aspx", data=PAYLOAD)
-    response = c.get(pdf_url)
+    resp = c.get(pdf_url)
+    resp.raise_for_status()
     with open(save_pdf_path, "wb") as f:
-        f.write(response.content)
+        f.write(resp.content)
 
-def download_and_sort_pdf(ack_id: str, url: str, save_dir: Path, c):
+def download_and_sort_pdf(p: Path, url: str, download_dir: Path, save_dir: Path, c: Session):
     """
-    Download pdf file from DOL and save on drive in proper folder as ack_id.pdf
+    Download pdf file from DOL and save on drive in proper folder as ack_id.pdf.
+    Then move the tracker file from CLAIMED → TO_PROCESS.
     """
-    save_dir.mkdir(parents=True, exist_ok=True)
+    ack_id, year = get_ack_id_year_from_path(p)
 
-    save_path = save_dir / f"{ack_id}.pdf"
+    tmp_dir = download_dir / year
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp_path = tmp_dir / f"{ack_id}.pdf.temp"
+
+    final_dir = save_dir / year
+    final_dir.mkdir(parents=True, exist_ok=True)
+    final_path = final_dir / f"{ack_id}.pdf"
+
     try:
-        download_file(url, save_path, c)
+        # 1) download to temp
+        download_file(url, tmp_path, c)
+
+        # 2) atomically finalize on same FS
+        tmp_path.rename(final_path)
+
+        # 3) move tracker token CLAIMED -> TO_PROCESS (preserve year)
+        new_tracker_file = unclaim_to(p, TO_PROCESS)
+        return new_tracker_file
     except Exception as e:
-        print('Error: ', e)
-        return ack_id, -1 # pdf_downloaded = -1 indicates error in the download process!
-
-    return ack_id, 1
-
-# # %%
-# myLogin()
-# # %%
-# testpath = Path('./downloaded_pdfs/test.pdf')
-# testurl = 'https://www.askebsa.dol.gov/BulkFOIARequest/Listings.aspx/GetImage?ack_id=20130212125301P030028636741001&year=2012'
-# # %%
-# download_file(testurl, testpath, myLogin())
-#  # %%
-# test_dir = Path('./downloaded_pdfs/test')
-# df = pd.read_csv('index_files/universe/universe_2012.csv')
-
-
-# download_and_sort_pdf(df.iloc[0].ack_id, df.iloc[0].link, test_dir, myLogin())
+        print("Error:", e)
+        print(f"[ERR ] download failed for {ack_id}; moving token to ERROR.")
+        unclaim_to(p, ERROR / 'download_failed')
+        # cleanup best-effort
+        tmp_path.unlink(missing_ok=True)
+        final_path.unlink(missing_ok=True)
+        return None
 
 # %%
 if __name__ == '__main__':
     cxn = myLogin()
 
+    print("Loading universe_all.csv ...")
+    # Load once
+    universe_all = (
+        pd.read_csv(INDEX / "universe_all.csv",
+                    dtype={"ack_id": str, "link": str},
+                    low_memory=False)
+          .drop_duplicates()
+    )
+    # normalize once
+    universe_all["ack_id"] = universe_all["ack_id"].astype(str).str.strip()
+    universe_all["link"]   = universe_all["link"].astype(str).str.strip()
+    
+    get_link = lambda id: universe_all.loc[universe_all["ack_id"].str.strip() == id].link.iloc[0]
+
+    # If ack_id is unique, index it (fast path). Otherwise, keep as before.
+    if universe_all["ack_id"].is_unique:
+        print("ack_id unique in universe_all. Setting it as index.")
+        universe_all = universe_all.set_index("ack_id")
+        get_link = lambda id: universe_all.at[id, "link"]
+
     while True:
-        ack_ids = claim_many_with_link(DOWNLOAD_BATCH_SIZE)
-        print('ack_ids: ', ack_ids)
-        df = get_df_by_ack_ids(ack_ids)
-        print('df: ', df)
+        tracker_paths = claim_n_any_year(TO_DOWNLOAD, CLAIMED, DOWNLOAD_BATCH_SIZE)
+        print(tracker_paths)
 
-        tracker = []
-        for _, row in df.iterrows():
-            status = download_and_sort_pdf(str(row.ack_id), str(row.link), DOWNLOAD_PATH / f'universe_{row.year}', cxn)
-            print(status)
-            tracker.append(status)
+        if not tracker_paths:
+            print("No items to claim; sleeping 2s...")
+            time.sleep(2)
+            continue
 
-        update_pdf_downloaded(tracker)
-        unclaim(ack_ids)
+        for p in tracker_paths:
+            ack_id, year = get_ack_id_year_from_path(p)
+            print(ack_id, year)
+
+            # Find the link row(s) for this ack_id
+            link_val = get_link(ack_id)
+            if not isinstance(link_val, str) or not link_val.strip() or link_val.strip().lower() in {"nan","none","null"}:
+                print(f"[WARN] ack_id {ack_id} has no usable link; sending to ERROR.")
+                unclaim_to(p, ERROR / 'no_link_provided')
+                continue
+
+            # Do the download & handoff to TO_PROCESS
+            new_tracker = download_and_sort_pdf(
+                p=p,
+                url=link_val.strip(),
+                download_dir=DOWNLOADING,
+                save_dir=DOWNLOADED,
+                c=cxn
+            )
+            print(new_tracker)
+        i+=1

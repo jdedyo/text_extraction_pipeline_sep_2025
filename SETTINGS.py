@@ -17,13 +17,19 @@ CLAIMED.mkdir(parents=True, exist_ok=True)
 ERROR = TRACKER / "error"
 ERROR.mkdir(parents=True, exist_ok=True)
 
+TO_DOWNLOAD = QUEUE / "to_download"
+TO_DOWNLOAD.mkdir(parents=True, exist_ok=True)
+
+TO_PROCESS = QUEUE / "to_process"
+TO_PROCESS.mkdir(parents=True, exist_ok=True)
+
 DOWNLOADING = TRACKER / "downloading"
 DOWNLOADING.mkdir(parents=True, exist_ok=True)
 
 DOWNLOADED = TRACKER / "downloaded"
 DOWNLOADED.mkdir(parents=True, exist_ok=True)
 
-DOWNLOAD_BATCH_SIZE = 900
+DOWNLOAD_BATCH_SIZE = 5
 
 PROCESSING = TRACKER / "processing"
 PROCESSING.mkdir(parents=True, exist_ok=True)
