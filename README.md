@@ -3,7 +3,7 @@
 
 Progress is tracked by the "Tracker()" class, which keeps track of where the .txt files are corresponding to each ack_id to record their status at any point in the pipeline.
 
-The user should only have to edit SETTINGS.py and fill the index files folder with the text files from https://www.askebsa.dol.gov/BulkFOIARequest/Listings.aspx/Index.
+The user should only have to edit SETTINGS.py and fill the index files folder with the text files from the [DOL](https://www.askebsa.dol.gov/BulkFOIARequest/Listings.aspx/Index).
 
 ### TODO:
 
