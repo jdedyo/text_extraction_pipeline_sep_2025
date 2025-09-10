@@ -13,6 +13,7 @@ from progress_tracking import *   # get_ack_id_year_from_path, unclaim_to, claim
 from credentials import USERNAME, PASSWORD
 from SETTINGS import *
 from tracker import Tracker
+from utils import slurm_time_remaining
 
 PAYLOAD = {"action": "login", "username": USERNAME, "password": PASSWORD}
 
@@ -107,26 +108,19 @@ if __name__ == '__main__':
     #     print("ack_id unique in universe_all. Setting it as index.")
     #     universe_all = universe_all.set_index("ack_id")
     #     get_link = lambda id: universe_all.at[id, "link"]
-    i=0
-    while i<=5:
+    while True:
         files = claim_n(TO_DOWNLOAD, CLAIMED, YEAR, DOWNLOAD_BATCH_SIZE)
         print(files)
 
         if not files:
-            print("No items to claim; sleeping 2s...")
-            time.sleep(2)
-            continue
+            print("No items to claim. Aborting job.")
+            break
+
+        if slurm_time_remaining() < pd.Timedelta(minutes=15):
+            break
 
         for p in files:
             t = Tracker(p)
             new_tracker = download_and_sort_pdf(t, cxn)
             
-            # download_and_sort_pdf(
-            #     p=p,
-            #     url=link_val.strip(),
-            #     download_dir=DOWNLOADING,
-            #     save_dir=DOWNLOADED,
-            #     c=cxn
-            # )
             print(new_tracker)
-        i+=1
