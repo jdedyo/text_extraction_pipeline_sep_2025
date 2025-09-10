@@ -112,9 +112,17 @@ if __name__ == '__main__':
         files = claim_n(TO_DOWNLOAD, CLAIMED, YEAR, DOWNLOAD_BATCH_SIZE)
         print(files)
 
+        
+
         if not files:
-            print("No items to claim. Aborting job.")
-            break
+            year_dir = TO_DOWNLOAD / str(YEAR)
+            if not any(os.scandir(year_dir)):
+                print(f"No items to claim for year {YEAR}. Aborting job.")
+                break
+            else:
+                wait_time = random.uniform(0, 10)
+                print(f"Sleeping for {wait_time:.1f} seconds before next batch...")
+                time.sleep(wait_time)
 
         if slurm_time_remaining() < pd.Timedelta(minutes=15):
             break
