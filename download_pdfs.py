@@ -14,6 +14,7 @@ from credentials import USERNAME, PASSWORD
 from SETTINGS import *
 from tracker import Tracker
 from utils import slurm_time_remaining
+import traceback
 
 PAYLOAD = {"action": "login", "username": USERNAME, "password": PASSWORD}
 
@@ -69,7 +70,7 @@ def download_and_sort_pdf(t: Tracker, c: Session, download_dir: Path=DOWNLOADING
     except Exception as e:
         print("Error:", e)
         print(f"[ERR ] download failed for {t.ack_id}; moving token to ERROR.")
-        t.update_status(DOWNLOAD_FAILED)
+        t.update_status(DOWNLOAD_FAILED, traceback.format_exc())
         # cleanup best-effort
         tmp_path.unlink(missing_ok=True)
         final_path.unlink(missing_ok=True)
