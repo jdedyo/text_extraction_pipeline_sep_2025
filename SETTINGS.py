@@ -26,7 +26,7 @@ DOWNLOADING.mkdir(parents=True, exist_ok=True)
 DOWNLOADED = TRACKER / "downloaded"
 DOWNLOADED.mkdir(parents=True, exist_ok=True)
 
-DOWNLOAD_BATCH_SIZE = 5
+DOWNLOAD_BATCH_SIZE = 500
 
 PROCESSING = TRACKER / "processing"
 PROCESSING.mkdir(parents=True, exist_ok=True)
