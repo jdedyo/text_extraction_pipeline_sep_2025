@@ -41,12 +41,16 @@ class Tracker():
     def get_link(self):
         df = self.get_csv()
         link = df.at[self.ack_id, "link"]
-        return link
+        if isinstance(link, str):
+            return link
+        return ""
     
     def get_facsimile_link(self):
         df = self.get_csv()
         link = df.at[self.ack_id, "facsimile_link"]
-        return link
+        if isinstance(link, str):
+            return link
+        return None
     
     def get_sponsor_name(self):
         df = self.get_csv()

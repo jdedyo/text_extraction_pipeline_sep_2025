@@ -13,13 +13,13 @@ def same_mount(path1: str | Path, path2: str | Path) -> bool:
     path1, path2 = Path(path1), Path(path2)
     return os.stat(path1).st_dev == os.stat(path2).st_dev
 
-def _safe_claim_then_move(src_path: str, dst_path: str) -> bool:
+def _safe_claim_then_move(src: Path, dst: Path) -> bool:
     """
     Atomically claim by renaming within the source dir to a unique temp name,
     then move to destination. Returns True on success, False if raced.
     """
-    src = Path(src_path)
-    dst = Path(dst_path)
+    # src = Path(src_path)
+    # dst = Path(dst_path)
     # 1) Claim inside source dir (always same-dir, atomic)
     temp = src.with_suffix(src.suffix + f".claiming.{os.getpid()}.{random.randint(0, 1_000_000)}")
     try:
@@ -57,67 +57,50 @@ def _safe_claim_then_move(src_path: str, dst_path: str) -> bool:
 
     return True
 
-def claim_n_any_year(src_root: Path, dst_root: Path, n: int, shuffle: bool = True):
+def claim_n(src_root: Path, dst_root: Path, year: str, n: int):#, shuffle: bool = True):
     """
-    Claim up to n files from any year subfolder under src_root,
+    Claim up to n files from the given year subfolder under src_root,
     moving each into the matching year subfolder under dst_root
     via _safe_claim_then_move (atomic same-dir claim; cross-FS safe move).
     Returns list of destination Paths.
     """
-    dst_root.mkdir(parents=True, exist_ok=True)
-    claimed = []
+    claimed: list[Path] = []
 
-    # Enumerate year directories quickly
-    with os.scandir(src_root) as it:
-        year_dirs = [e for e in it if e.is_dir(follow_symlinks=False)]
+    year = str(year)
 
-    if not year_dirs:
-        return claimed
-    if shuffle:
-        random.shuffle(year_dirs)
+    # Locate year directory
+    yd = src_root / year
+    if not yd.is_dir():
+        return claimed  # nothing to claim
 
-    dst_cache: dict[str, Path] = {}
+    # Ensure destination year dir exists
+    dstdir = dst_root / year
+    dstdir.mkdir(parents=True, exist_ok=True)
 
-    while len(claimed) < n and year_dirs:
-        progress = False
+    try:
+        # Stream entries; do not build a list
+        with os.scandir(yd) as entries:
+            for fe in entries:
+                if len(claimed) >= n:
+                    break
 
-        for yd in year_dirs:
-            if len(claimed) >= n:
-                break
+                # only regular files; ignore dirs/symlinks
+                if not fe.is_file(follow_symlinks=False):
+                    continue
+                # skip temporary in-progress markers
+                if ".claiming." in fe.name:
+                    continue
 
-            year = yd.name
+                src = Path(fe.path)
+                dst = dstdir / fe.name
 
-            # Ensure destination year dir exists (cached)
-            dstdir = dst_cache.get(year)
-            if dstdir is None:
-                dstdir = dst_root / year
-                dstdir.mkdir(parents=True, exist_ok=True)
-                dst_cache[year] = dstdir
+                # Try to claim+move; returns True if we won the race
+                if _safe_claim_then_move(src, dst):
+                    claimed.append(dst)
 
-            # Scan this year directory for one claimable file
-            try:
-                with os.scandir(yd.path) as files:
-                    for fe in files:
-                        # only regular files; ignore dirs/symlinks
-                        if not fe.is_file(follow_symlinks=False):
-                            continue
-                        # skip temporary in-progress markers
-                        if ".claiming." in fe.name:
-                            continue
-
-                        dst = dstdir / fe.name
-                        # Try to claim+move; returns True if we won the race
-                        if _safe_claim_then_move(fe.path, str(dst)):
-                            claimed.append(dst)
-                            progress = True
-                            break  # round-robin: move to next year
-            except FileNotFoundError:
-                # The year dir vanished; skip it
-                continue
-
-        if not progress:
-            # Nothing left to claim across all year dirs
-            break
+    except FileNotFoundError:
+        # The year dir vanished; treat as nothing to claim
+        pass
 
     return claimed
 
@@ -127,6 +110,48 @@ def get_ack_id_year_from_path(p: Path):
     """
     ack_id, year = p.stem, p.parent.name
     return ack_id, year
+
+def unclaim_all(src_root: Path, dst_root: Path):
+    unclaimed: list[Path] = []
+
+    if not src_root.is_dir():
+        return unclaimed
+
+    # Walk only one level of year dirs under src_root
+    for year_dir in src_root.iterdir():
+        if not year_dir.is_dir():
+            continue
+
+        year = year_dir.name
+        if not (len(year_dir.name) == 4 and year_dir.name.isdigit()):
+            raise Exception(f"Non-year directory found at {year_dir}.")
+
+        dstdir = dst_root / year
+        dstdir.mkdir(parents=True, exist_ok=True)
+
+        with os.scandir(year_dir) as entries:
+            for fe in entries:
+                if not fe.is_file(follow_symlinks=False):
+                    continue
+                if ".claiming." in fe.name:  # skip temp markers
+                    continue
+
+                src = Path(fe.path)
+                dst = dstdir / fe.name
+
+                if dst.exists():
+                    raise FileExistsError(f"Destination already exists: {dst}")
+
+                src.rename(dst)
+                unclaimed.append(dst)
+        
+        try:
+            year_dir.rmdir()
+        except OSError:
+            # Not empty or some other issue; ignore
+            pass
+
+    return unclaimed
 
 
 # def unclaim_to(src_file: Path, dst_dir: Path):
@@ -139,17 +164,17 @@ def get_ack_id_year_from_path(p: Path):
 #     src_file.rename(dst)
 #     return dst
 
-def unclaim_to(src_file: Path, dst_root: Path):
-    """
-    Move an ack_id file from one root (e.g. CLAIMED) to another (e.g. TO_PROCESS, ERROR, PROCESSED),
-    preserving the year subfolder.
-    """
-    year = src_file.parent.name        # e.g. "2003"
-    dst_dir = dst_root / year
-    dst_dir.mkdir(parents=True, exist_ok=True)
+# def unclaim_to(src_file: Path, dst_root: Path):
+#     """
+#     Move an ack_id file from one root (e.g. CLAIMED) to another (e.g. TO_PROCESS, ERROR, PROCESSED),
+#     preserving the year subfolder.
+#     """
+#     year = src_file.parent.name        # e.g. "2003"
+#     dst_dir = dst_root / year
+#     dst_dir.mkdir(parents=True, exist_ok=True)
 
-    dst_file = dst_dir / src_file.name
-    src_file.rename(dst_file)          # atomic on same filesystem
-    return dst_file
+#     dst_file = dst_dir / src_file.name
+#     src_file.rename(dst_file)          # atomic on same filesystem
+#     return dst_file
 
 # %%
