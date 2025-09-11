@@ -34,10 +34,40 @@ PROCESSING.mkdir(parents=True, exist_ok=True)
 PROCESSED = TRACKER / "processed"
 PROCESSED.mkdir(parents=True, exist_ok=True)
 
-PROCESS_BATCH_SIZE = 900
+SELECTION = TRACKER / "selection"
+SELECTION.mkdir(parents=True, exist_ok=True)
 
+PROCESS_BATCH_SIZE = 100
+
+TEMP = TRACKER / "temp"
+TEMP.mkdir(parents=True, exist_ok=True)
 
 ERROR = TRACKER / "error"
 ERROR.mkdir(parents=True, exist_ok=True)
 
 DOWNLOAD_FAILED = ERROR / "download_failed"
+
+PLAN_NOT_FOUND = ERROR / "plan_not_found"
+
+CORRUPTED_FILE = ERROR / "corrupted_file"
+
+FILE_TOO_LONG = ERROR / "file_too_long"
+
+TEXT_EXTRACTION_EMPTY = ERROR / "text_extraction_empty"
+
+NUMBER_PAGES_TO_SAVE = 4
+
+TERMS = [
+    "Description of Plan",
+    "Description Of Plan",
+    "DESCRIPTION OF PLAN",
+    "Description of the Plan",
+    "Description Of The Plan",
+    "DESCRIPTION OF THE PLAN",
+    "Description of Plans",
+    "Description of the Plans",
+    "Plan Description",
+    "PLAN DESCRIPTION",
+    "SUMMARY OF SIGNIFICANT ACCOUNTING POLICIES",
+    "DESCRIPTION OF THE 401(k) PENSION PLAN",
+]
