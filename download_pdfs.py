@@ -110,6 +110,8 @@ if __name__ == '__main__':
     #     universe_all = universe_all.set_index("ack_id")
     #     get_link = lambda id: universe_all.at[id, "link"]
     while True:
+        if slurm_time_remaining() < pd.Timedelta(minutes=15):
+            break
         files = claim_n(TO_DOWNLOAD, CLAIMED, YEAR, DOWNLOAD_BATCH_SIZE)
         print(files)
 
@@ -124,9 +126,6 @@ if __name__ == '__main__':
                 wait_time = random.uniform(0, 10)
                 print(f"Sleeping for {wait_time:.1f} seconds before next batch...")
                 time.sleep(wait_time)
-
-        if slurm_time_remaining() < pd.Timedelta(minutes=15):
-            break
 
         for p in files:
             t = Tracker(p)

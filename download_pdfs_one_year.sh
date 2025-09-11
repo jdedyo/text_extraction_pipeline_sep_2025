@@ -34,7 +34,7 @@ else
         #sbatch grace_task_pdf_download.sbatch $sample
         #sbatch --export=SAMPLE=$sample grace_task_pdf_download.sbatch
 
-        job_name="download_pdfs_$i"  # Change this to your desired job name
+        job_name="download_pdfs_$year_$i"  # Change this to your desired job name
 
         # Use sbatch to submit the job
         sbatch --job-name="$job_name" "$sbatch_script" $year

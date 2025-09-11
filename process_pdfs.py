@@ -93,7 +93,10 @@ if __name__ == "__main__":
     print(f"Processing PDFs for year {YEAR}...")
 
     for _ in range(1):
-
+        if slurm_time_remaining() < pd.Timedelta(minutes=15):
+            print(f"Slurm job nearly out of time. Aborting to avoid being cut off.")
+            break
+        
         files = claim_n(TO_PROCESS, CLAIMED, YEAR, PROCESS_BATCH_SIZE)
         print(files)
 
@@ -107,9 +110,7 @@ if __name__ == "__main__":
                 print(f"Sleeping for {wait_time:.1f} seconds before next batch...")
                 time.sleep(wait_time)
         
-        # if slurm_time_remaining() < pd.Timedelta(minutes=15):
-        #     print(f"Slurm job nearly out of time. Aborting to avoid being cut off.")
-        #     break
+        
 
         for p in files:
             t = Tracker(p)

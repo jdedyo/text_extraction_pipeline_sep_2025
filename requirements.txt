@@ -1,13 +1,14 @@
-pip install pypdf pdfminer.six PyMuPDF ocrmypdf pdf2image pytesseract pillow pandas logging argparse
+# pip install pypdf pdfminer.six PyMuPDF ocrmypdf pdf2image pytesseract pillow pandas logging argparse
 
-pip install pandas
+# pip install pandas
 
-pip install --upgrade cryptography pycryptodome cffi
+# pip install --upgrade cryptography pycryptodome cffi
 
-module load miniconda
+# module load miniconda
 
-conda install -c conda-forge tesseract
+# conda install -c conda-forge tesseract
 
 module load miniconda
 module load poppler/22.12.0-GCC-12.2.0
-conda create -n text_extraction_sep_2025 -c conda-forge python=3.11 pypdf pdfminer.six pymupdf ocrmypdf pdf2image pytesseract pillow pandas cryptography pycryptodome cffi tesseract
+conda create -n text_extraction_sep_2025 -c conda-forge python=3.11 pypdf pdfminer.six pymupdf pdf2image pytesseract pillow pandas cryptography pycryptodome cffi tesseract requests
+pip install --upgrade ocrmypdf
