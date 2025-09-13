@@ -5,7 +5,7 @@ if not INDEX.exists():
     raise FileNotFoundError(f"Index files path does not exist: {INDEX}")
 
 
-TRACKER = Path.home() / "scratch_pi_co337/jmd324/text_extraction_pipeline_tracker"
+TRACKER = Path.home() / "scratch_pi_co337/jmd324/txt_extraction_pipeline_tracker"
 TRACKER.mkdir(parents=True, exist_ok=True)
 
 QUEUE = TRACKER / "queue"
@@ -37,7 +37,7 @@ PROCESSED.mkdir(parents=True, exist_ok=True)
 SELECTION = TRACKER / "selection"
 SELECTION.mkdir(parents=True, exist_ok=True)
 
-PROCESS_BATCH_SIZE = 100
+PROCESS_BATCH_SIZE = 20
 
 TEMP = TRACKER / "temp"
 TEMP.mkdir(parents=True, exist_ok=True)
@@ -71,3 +71,6 @@ TERMS = [
     "SUMMARY OF SIGNIFICANT ACCOUNTING POLICIES",
     "DESCRIPTION OF THE 401(k) PENSION PLAN",
 ]
+
+RECORDS = INDEX.parent / "records"
+RECORDS.mkdir(parents=True, exist_ok=True)

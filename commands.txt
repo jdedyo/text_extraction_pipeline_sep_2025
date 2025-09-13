@@ -1,0 +1,4 @@
+sbatch --job-name=delete_file --partition=day --time=5:00:00 --wrap="rm -rf file_path"
+
+
+sbatch --job-name=delete_file --partition=day --time=5:00:00 --wrap="rm -rf /nfs/roberts/scratch/pi_co337/jmd324/text_extraction_pipeline_tracker"

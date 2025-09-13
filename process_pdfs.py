@@ -92,8 +92,9 @@ if __name__ == "__main__":
 
     print(f"Processing PDFs for year {YEAR}...")
 
-    for _ in range(1):
-        if slurm_time_remaining() < pd.Timedelta(minutes=15):
+    # for _ in range(1):
+    while True:
+        if slurm_time_remaining() < pd.Timedelta(minutes=PROCESS_BATCH_SIZE): # Rule of thumb: each pdf takes one minute to process
             print(f"Slurm job nearly out of time. Aborting to avoid being cut off.")
             break
         
@@ -109,6 +110,7 @@ if __name__ == "__main__":
                 wait_time = random.uniform(0, 10)
                 print(f"Sleeping for {wait_time:.1f} seconds before next batch...")
                 time.sleep(wait_time)
+                continue
         
         
 

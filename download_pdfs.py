@@ -126,6 +126,7 @@ if __name__ == '__main__':
                 wait_time = random.uniform(0, 10)
                 print(f"Sleeping for {wait_time:.1f} seconds before next batch...")
                 time.sleep(wait_time)
+                continue
 
         for p in files:
             t = Tracker(p)
