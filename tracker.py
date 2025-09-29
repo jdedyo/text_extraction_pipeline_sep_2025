@@ -26,7 +26,7 @@ class Tracker():
         
         return df
 
-    def update_status(self, status: Path, msg: str=""):
+    def update_status(self, status: Path, msg: str="", overwrite=False):
         dest = status / self.year / self.filename
         dest.parent.mkdir(parents=True, exist_ok=True)
 
@@ -38,8 +38,12 @@ class Tracker():
 
         if msg:
             text = str(msg)
-            with open(self.path, "a") as f:
-                f.write(text + "\n")
+            if overwrite:
+                with open(self.path, "w", encoding="utf-8") as f:
+                    f.write(text + "\n")
+            else:
+                with open(self.path, "a", encoding="utf-8") as f:
+                    f.write(text + "\n")
 
         return dest
 

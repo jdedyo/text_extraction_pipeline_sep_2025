@@ -9,7 +9,7 @@ import random
 import sys
 import time
 from pathlib import Path
-from progress_tracking import *   # get_ack_id_year_from_path, unclaim_to, claim_n_any_year, etc.
+from progress_tracking import * 
 from credentials import USERNAME, PASSWORD
 from SETTINGS import *
 from tracker import Tracker
@@ -37,6 +37,39 @@ def download_file(pdf_url: str, save_pdf_path: Path, c: Session):
     with open(save_pdf_path, "wb") as f:
         f.write(resp.content)
 
+def download_file_with_retry(pdf_url: str, save_pdf_path: Path, c: Session, max_retries: int = 5, backoff: float = 2.0):
+    """
+    Download PDF file from DOL and save on drive, retrying on HTTP 5xx and connection errors.
+    Raises the most recent exception if all attempts fail.
+    """
+    last_exception = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            download_file(pdf_url, save_pdf_path, c)
+            return
+
+        except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            last_exception = e
+            status = getattr(e.response, "status_code", None)
+
+            # Retry only on transient errors: 5xx server errors, timeouts, connection errors
+            if isinstance(e, requests.exceptions.HTTPError) and (status is not None and status < 500):
+                # Don't retry on 4xx errors (like 404 Not Found)
+                raise
+
+            if attempt < max_retries:
+                wait_time = backoff * (2 ** (attempt - 1))
+                print(f"[Attempt {attempt}/{max_retries}] Error {status or type(e).__name__} for {pdf_url}. Retrying in {wait_time:.1f}s...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed after {max_retries} attempts for {pdf_url}")
+                raise
+
+    # In case the loop exits without raising
+    if last_exception:
+        raise last_exception
+
 def download_and_sort_pdf(t: Tracker, c: Session, download_dir: Path=DOWNLOADING, save_dir: Path=DOWNLOADED):
     """
     Download pdf file from DOL and save on drive in proper folder as ack_id.pdf.
@@ -58,7 +91,7 @@ def download_and_sort_pdf(t: Tracker, c: Session, download_dir: Path=DOWNLOADING
         url = t.get_facsimile_link()
     try:
         # 1) download to temp
-        download_file(url, tmp_path, c)
+        download_file_with_retry(url, tmp_path, c)
 
         # 2) atomically finalize on same FS
         tmp_path.rename(final_path)
@@ -69,7 +102,7 @@ def download_and_sort_pdf(t: Tracker, c: Session, download_dir: Path=DOWNLOADING
         return q
     except Exception as e:
         print("Error:", e)
-        print(f"[ERR ] download failed for {t.ack_id}; moving token to ERROR.")
+        print(f"[ERR] download failed for {t.ack_id}; moving token to ERROR.")
         t.update_status(DOWNLOAD_FAILED, traceback.format_exc())
         # cleanup best-effort
         tmp_path.unlink(missing_ok=True)
@@ -90,32 +123,18 @@ if __name__ == '__main__':
 
     YEAR = args.year
     print(f"Downloading PDFs for year {YEAR}...")
-    # print("Loading universe_all.csv ...")
-    # # Load once
-    # universe_all = (
-    #     pd.read_csv(INDEX / "universe_all.csv",
-    #                 dtype={"ack_id": str, "link": str},
-    #                 low_memory=False)
-    #       .drop_duplicates()
-    # )
-    # # normalize once
-    # universe_all["ack_id"] = universe_all["ack_id"].astype(str).str.strip()
-    # universe_all["link"]   = universe_all["link"].astype(str).str.strip()
-    
-    # get_link = lambda id: universe_all.loc[universe_all["ack_id"].str.strip() == id].link.iloc[0]
 
-    # # If ack_id is unique, index it (fast path). Otherwise, keep as before.
-    # if universe_all["ack_id"].is_unique:
-    #     print("ack_id unique in universe_all. Setting it as index.")
-    #     universe_all = universe_all.set_index("ack_id")
-    #     get_link = lambda id: universe_all.at[id, "link"]
     while True:
-        if slurm_time_remaining() < pd.Timedelta(minutes=15):
-            break
+
+        try: 
+            if slurm_time_remaining() < pd.Timedelta(minutes=15):
+                break
+        except:
+            pass
+
         files = claim_n(TO_DOWNLOAD, CLAIMED, YEAR, DOWNLOAD_BATCH_SIZE)
         print(files)
 
-        
 
         if not files:
             year_dir = TO_DOWNLOAD / str(YEAR)

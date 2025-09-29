@@ -70,13 +70,6 @@ def save_selection(t: Tracker, page_num: int, number_pages_to_save: int=NUMBER_P
 
     return selection_path
 
-# def extract_text(t: Tracker, page_num: int):
-#     raw_file_path = str(t.get_pdf_path()) # Antoine's old functions require string paths
-#
-#
-#
-    
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download PDFs for a given year.")
@@ -92,11 +85,14 @@ if __name__ == "__main__":
 
     print(f"Processing PDFs for year {YEAR}...")
 
-    # for _ in range(1):
     while True:
-        if slurm_time_remaining() < pd.Timedelta(minutes=PROCESS_BATCH_SIZE): # Rule of thumb: each pdf takes one minute to process
-            print(f"Slurm job nearly out of time. Aborting to avoid being cut off.")
-            break
+        
+        try:
+            if slurm_time_remaining() < pd.Timedelta(minutes=PROCESS_BATCH_SIZE*1.5): # Rule of thumb: each pdf takes 90sec to process
+                print(f"Slurm job nearly out of time. Aborting to avoid being cut off.")
+                break
+        except:
+            pass
         
         files = claim_n(TO_PROCESS, CLAIMED, YEAR, PROCESS_BATCH_SIZE)
         print(files)
@@ -120,7 +116,11 @@ if __name__ == "__main__":
             if not check_valid_pdf(t):
                 continue
             
-            page_num = get_plan_page_num(t)
+            try:
+                page_num = get_plan_page_num(t)
+            except:
+                t.update_status(PDF_READER_FAILED, traceback.format_exc())
+                continue
 
             if page_num == -1:
                 continue
@@ -133,8 +133,8 @@ if __name__ == "__main__":
             if "the" not in text.lower():
                 print("cannot find 'the' in the text")
                 t.update_status(TEXT_EXTRACTION_EMPTY, text)
-            # save txt file
+            # save txt file and overwrite anything already stored in it
             else:
-                t.update_status(PROCESSED, text)
+                t.update_status(PROCESSED, text, overwrite=True)
 
             print(text[:500])

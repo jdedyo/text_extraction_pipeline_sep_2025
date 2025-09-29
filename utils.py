@@ -10,15 +10,33 @@ import os
 import pypdf
 from tracker import Tracker
 from SETTINGS import *
+import re
 
 def normalize_slurm_time(s: str) -> str:
-    s = s.strip()
-    if "-" in s:  # D-HH:MM:SS -> "D days HH:MM:SS"
-        d, rest = s.split("-", 1)
-        return f"{int(d)} days {rest}"
-    if s.count(":") == 1:  # MM:SS -> "0:MM:SS"
-        mm, ss = s.split(":")
-        return f"00:{int(mm):02d}:{int(ss):02d}"
+    """
+    Accepts typical Slurm TIME_LEFT strings and returns something pandas can parse, e.g.:
+      '1-02:03:04' -> '1 days 02:03:04'
+      '02:03:04'   -> '0 days 02:03:04'
+      '12:34'      -> '0 days 00:12:34'
+    Also strips whitespace/newlines and handles UNLIMITED/N/A.
+    """
+    if s is None:
+        return "0 days 00:00:00"
+
+    s = s.strip() 
+
+    if s.upper() in {"UNLIMITED", "N/A", "NOT_SET"} or s == "":
+        return "999999 days 00:00:00"
+
+    # Match optional days, then H:MM[:SS]
+    m = re.fullmatch(r"(?:(\d+)-)?(\d{1,2}):(\d{2})(?::(\d{2}))?", s)
+    if m:
+        days = int(m.group(1) or 0)
+        hh   = int(m.group(2))
+        mm   = int(m.group(3))
+        ss   = int(m.group(4) or 0)
+        return f"{days} days {hh:02d}:{mm:02d}:{ss:02d}"
+
     return s
 
 def slurm_time_remaining():
@@ -39,16 +57,8 @@ def slurm_time_remaining():
     if not time_left_str:
         return None
 
-    # Let pandas parse it into a Timedelta
     td = pd.to_timedelta(normalize_slurm_time(time_left_str))
     return td
-
-# # Example usage
-# td = slurm_time_remaining()
-# if td is not None:
-#     print(f"Remaining time: {td} ({td.total_seconds():.0f} seconds)")
-# else:
-#     print("Not running inside a Slurm job.")
 
 def save_page_selection(pageNumber: int, inputFile: Path, outputFile: Path, number_pages_to_save: int=NUMBER_PAGES_TO_SAVE):
     """Extract pages from a PDF and save them in a new PDF.

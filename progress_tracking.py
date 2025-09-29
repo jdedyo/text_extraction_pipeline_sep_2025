@@ -1,4 +1,3 @@
-# %%
 import os
 from pathlib import Path
 from itertools import islice
@@ -18,12 +17,11 @@ def _safe_claim_then_move(src: Path, dst: Path) -> bool:
     Atomically claim by renaming within the source dir to a unique temp name,
     then move to destination. Returns True on success, False if raced.
     """
-    # src = Path(src_path)
-    # dst = Path(dst_path)
-    # 1) Claim inside source dir (always same-dir, atomic)
+
+    # 1) Claim inside source dir
     temp = src.with_suffix(src.suffix + f".claiming.{os.getpid()}.{random.randint(0, 1_000_000)}")
     try:
-        os.rename(src, temp)  # atomic: only one worker wins
+        os.rename(src, temp)
     except FileNotFoundError:
         return False  # raced
     except OSError as e:
@@ -31,14 +29,12 @@ def _safe_claim_then_move(src: Path, dst: Path) -> bool:
             return False
         raise
 
-    # 2) Move claimed token to destination (may cross dirs; handle EXDEV)
+    # 2) Move claimed token to destination
     try:
         try:
-            os.rename(temp, dst)   # atomic if same FS
+            os.rename(temp, dst)
         except OSError as e:
             if e.errno == errno.EXDEV:
-                # cross-device: fall back to replace semantics
-                # (token files are tiny, so copy+unlink is fine)
                 with open(temp, "rb") as f:
                     data = f.read()
                 with open(dst, "wb") as f:
@@ -51,13 +47,13 @@ def _safe_claim_then_move(src: Path, dst: Path) -> bool:
         try:
             os.rename(temp, src)
         except Exception:
-            # If this also fails, leave temp; a janitor can clean *.claiming.*
+            # If this also fails, leave temp
             pass
         raise
 
     return True
 
-def claim_n(src_root: Path, dst_root: Path, year: str, n: int):#, shuffle: bool = True):
+def claim_n(src_root: Path, dst_root: Path, year: str, n: int):
     """
     Claim up to n files from the given year subfolder under src_root,
     moving each into the matching year subfolder under dst_root
@@ -84,7 +80,7 @@ def claim_n(src_root: Path, dst_root: Path, year: str, n: int):#, shuffle: bool 
                 if len(claimed) >= n:
                     break
 
-                # only regular files; ignore dirs/symlinks
+                # only regular files; ignore dirs
                 if not fe.is_file(follow_symlinks=False):
                     continue
                 # skip temporary in-progress markers
@@ -94,12 +90,12 @@ def claim_n(src_root: Path, dst_root: Path, year: str, n: int):#, shuffle: bool 
                 src = Path(fe.path)
                 dst = dstdir / fe.name
 
-                # Try to claim+move; returns True if we won the race
+                # Try to claim+move
                 if _safe_claim_then_move(src, dst):
                     claimed.append(dst)
 
     except FileNotFoundError:
-        # The year dir vanished; treat as nothing to claim
+        # The year dir vanished. Treat as nothing to claim
         pass
 
     return claimed
@@ -148,33 +144,31 @@ def unclaim_all(src_root: Path, dst_root: Path):
         try:
             year_dir.rmdir()
         except OSError:
-            # Not empty or some other issue; ignore
+            # Not empty or some other issue. Ignore
             pass
 
     return unclaimed
 
+def clean_queue_filenames(queue: Path):
+    """
+    Recursively finds all files in the given folder whose names contain `.txt`
+    followed by extra text, and renames them to stop at `.txt`.
 
-# def unclaim_to(src_file: Path, dst_dir: Path):
-#     """
-#     Move an individual ack_id file from src_file into dst_dir.
-#     Keeps the filename (e.g. 1234567.txt).
-#     """
-#     dst_dir.mkdir(parents=True, exist_ok=True)  # make sure the folder exists
-#     dst = dst_dir / src_file.name
-#     src_file.rename(dst)
-#     return dst
+    Parameters
+    ----------
+    folder : str
+        Path to the root folder to scan.
+    """
+    folder_path = Path(queue)
 
-# def unclaim_to(src_file: Path, dst_root: Path):
-#     """
-#     Move an ack_id file from one root (e.g. CLAIMED) to another (e.g. TO_PROCESS, ERROR, PROCESSED),
-#     preserving the year subfolder.
-#     """
-#     year = src_file.parent.name        # e.g. "2003"
-#     dst_dir = dst_root / year
-#     dst_dir.mkdir(parents=True, exist_ok=True)
+    for file_path in folder_path.rglob("*"):
+        if file_path.is_file() and ".txt" in file_path.name:
+            name_before_txt, sep, _ = file_path.name.partition(".txt")
+            new_name = f"{name_before_txt}{sep}"  # keep '.txt'
+            new_path = file_path.with_name(new_name)
 
-#     dst_file = dst_dir / src_file.name
-#     src_file.rename(dst_file)          # atomic on same filesystem
-#     return dst_file
-
-# %%
+            if new_path.exists():
+                print(f"Skipping {file_path} (target {new_name} already exists)")
+            else:
+                print(f"Renaming {file_path} -> {new_name}")
+                file_path.rename(new_path)

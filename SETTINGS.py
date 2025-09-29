@@ -46,14 +46,22 @@ ERROR = TRACKER / "error"
 ERROR.mkdir(parents=True, exist_ok=True)
 
 DOWNLOAD_FAILED = ERROR / "download_failed"
+DOWNLOAD_FAILED.mkdir(parents=True, exist_ok=True)
 
 PLAN_NOT_FOUND = ERROR / "plan_not_found"
+PLAN_NOT_FOUND.mkdir(parents=True, exist_ok=True)
 
 CORRUPTED_FILE = ERROR / "corrupted_file"
+CORRUPTED_FILE.mkdir(parents=True, exist_ok=True)
 
 FILE_TOO_LONG = ERROR / "file_too_long"
+FILE_TOO_LONG.mkdir(parents=True, exist_ok=True)
 
 TEXT_EXTRACTION_EMPTY = ERROR / "text_extraction_empty"
+TEXT_EXTRACTION_EMPTY.mkdir(parents=True, exist_ok=True)
+
+PDF_READER_FAILED = ERROR / "pdf_reader_failed"
+PDF_READER_FAILED.mkdir(parents=True, exist_ok=True)
 
 NUMBER_PAGES_TO_SAVE = 4
 
