@@ -1,9 +1,11 @@
 from pathlib import Path
 
+DOL_INDEX_FILES = Path("./index_files/dol_index_files")
+YEARS = list(range(1999, 2025))
+
 INDEX = Path("/nfs/roberts/project/pi_co337/jmd324/text_extraction_pipeline_sep_2025/index_files/universe")
 if not INDEX.exists():
     raise FileNotFoundError(f"Index files path does not exist: {INDEX}")
-
 
 TRACKER = Path.home() / "scratch_pi_co337/jmd324/txt_extraction_pipeline_tracker"
 TRACKER.mkdir(parents=True, exist_ok=True)
