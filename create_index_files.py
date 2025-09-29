@@ -3,7 +3,7 @@ import pandas as pd
 import csv
 from pathlib import Path
 from tqdm import tqdm
-from settings import *
+from SETTINGS import *
 
 # %%
 def load_dol_file_to_df(year: int, index_files_path: Path):
@@ -57,7 +57,7 @@ save_path.mkdir(parents=True, exist_ok=True)
 
 if __name__ == '__main__':
     
-    good_ack_ids = get_acceptable_ack_ids_from_index_file(DOL_INDEX_FILES / 'merged_sh_h.dta')
+    good_ack_ids = get_acceptable_ack_ids_from_index_file(MERGE_INDEX)
 
     for year in tqdm(
         YEARS,

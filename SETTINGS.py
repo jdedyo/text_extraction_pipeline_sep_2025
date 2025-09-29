@@ -7,6 +7,8 @@ INDEX = Path("/nfs/roberts/project/pi_co337/jmd324/text_extraction_pipeline_sep_
 if not INDEX.exists():
     raise FileNotFoundError(f"Index files path does not exist: {INDEX}")
 
+MERGE_INDEX = INDEX.parent / 'merged_ppp_5500_data_compressed_2025.dta'
+
 TRACKER = Path.home() / "scratch_pi_co337/jmd324/txt_extraction_pipeline_tracker"
 TRACKER.mkdir(parents=True, exist_ok=True)
 
