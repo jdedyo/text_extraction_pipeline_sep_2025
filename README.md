@@ -14,12 +14,20 @@ The user should only have to edit SETTINGS.py and fill the index files folder wi
 ### Usage (Bouchet cluster)
 
 1. Clone repo into your project directory.
-2. Run the commands in `requirements.txt` to set up the conda environment.
-3. Add an `index_files/dol_index_files` folder to the repo that contains the DoL index files. Include `merged_sh_h.dta` in the folder. Then run `python create_index_files.py`.
-4. Edit `SETTINGS.py` so that all paths are correct for your device.
+2. *On a compute node* `conda_setup.sh` to set up the conda environment. You may need to edit this for your platform.
+3. Edit `SETTINGS.py` so that all paths are correct for your device.
+4. Add an `index_files/dol_index_files` folder to the repo that contains the DoL index files. Include your own index file in the folder (`MERGE_INDEX` in `SETTINGS.py`). Then run `bash setup.sh`.
 5. Open a terminal and navigate to the repo.
-6. Run `bash tracker_setup.sh` to set up the progress tracking system (*make sure this is done in a scratch directory*).
-7. Start running download jobs with `bash download_pdfs_range.sh NB_CPUS MIN_YEAR MAX_YEAR`.
-8. Once many pdfs are downloaded, run processing jobs with `bash process_pdfs_range.sh NB_CPUS MIN_YEAR MAX_YEAR`.
-9. After all pdfs are processed (check that no files remain in the queue by navigating to the tracker folder and running `ls queue/*/to_download | wc -l`) create the records csv files with `bash generate_records_range.sh MIN_YEAR MAX_YEAR`.
-10. Finally, create csv files with all OCR-extracted text with `bash generate_ocr_csvs.sh MIN_YEAR MAX_YEAR`.
+<!-- 6. Run `bash tracker_setup.sh` to set up the progress tracking system (*make sure this is done in a scratch directory*). -->
+6. Start running download jobs with `bash download_pdfs_range.sh NB_CPUS MIN_YEAR MAX_YEAR`.
+7. Once many pdfs are downloaded, run processing jobs with `bash process_pdfs_range.sh NB_CPUS MIN_YEAR MAX_YEAR`.
+8. After all pdfs are processed (check that no files remain in the queue by navigating to the tracker folder and running `ls queue/*/to_download | wc -l`) create the metadata and final ocr csvs by running `bash generate_output.sh`.
+
+
+
+### Remarks
+
+1. Make sure to run enough CPUs that the downloading/processing for the year is done before the jobs are cancelled, or else some manual cleanup is required.
+2. You can create csv files with all OCR-extracted text for a subset of years with `bash generate_ocr_csvs.sh MIN_YEAR MAX_YEAR`.
+3. `tracker_setup.py` takes an optional `--year` argument, so it can be run for a single year (if the dataset expands, e.g.).
+4.  with `bash generate_records_range.sh MIN_YEAR MAX_YEAR`.
