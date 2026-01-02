@@ -14,8 +14,8 @@ The user should only have to edit SETTINGS.py and fill the index files folder wi
 ### Usage (Bouchet cluster)
 
 1. Clone repo into your project directory.
-2. Add an `index_files/dol_index_files` folder to the repo that contains the DoL index files. Include `merged_sh_h.dta` in the folder.
-3. Run the commands in `requirements.txt` to set up the conda environment.
+2. Run the commands in `requirements.txt` to set up the conda environment.
+3. Add an `index_files/dol_index_files` folder to the repo that contains the DoL index files. Include `merged_sh_h.dta` in the folder. Then run `python create_index_files.py`.
 4. Edit `SETTINGS.py` so that all paths are correct for your device.
 5. Open a terminal and navigate to the repo.
 6. Run `bash tracker_setup.sh` to set up the progress tracking system (*make sure this is done in a scratch directory*).

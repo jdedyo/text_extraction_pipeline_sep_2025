@@ -81,3 +81,10 @@ class Tracker():
     
     def exists(self):
         return self.path.exists()
+    
+    def get_selection_path(self):
+        p = (SELECTION / self.year / f"{self.ack_id}_selection.pdf")
+        if p.exists():
+            return p
+        else:
+            raise FileNotFoundError(f"No pdf associated with ack_id {self.ack_id} found in {DOWNLOADED / self.year}.")

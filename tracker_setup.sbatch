@@ -7,6 +7,7 @@
 #SBATCH --partition=day
 
 module purge
-source .venv/bin/activate
+module load miniconda
+conda activate text_extraction_sep_2025
 
 python tracker_setup.py

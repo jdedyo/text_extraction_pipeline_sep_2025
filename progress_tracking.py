@@ -168,7 +168,8 @@ def clean_queue_filenames(queue: Path):
             new_path = file_path.with_name(new_name)
 
             if new_path.exists():
-                print(f"Skipping {file_path} (target {new_name} already exists)")
+                # print(f"Skipping {file_path} (target {new_name} already exists)")
+                pass
             else:
                 print(f"Renaming {file_path} -> {new_name}")
                 file_path.rename(new_path)

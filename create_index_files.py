@@ -38,7 +38,7 @@ def get_acceptable_ack_ids_from_index_file(filepath: Path):
 
     df = pd.read_stata(filepath, columns=["ack_id", "pension_benefit_code"])
 
-    df = df.loc[df.pension_benefit_code.str.contains("2J|2K", na=False)]
+    df = df.loc[df.pension_benefit_code.str.contains("2J|2L", na=False)]
     df["ack_id"] = df["ack_id"].astype(str)
     df["ack_id"] = df["ack_id"].map(lambda x: x.strip())
 

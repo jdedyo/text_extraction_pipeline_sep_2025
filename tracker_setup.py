@@ -1,5 +1,11 @@
 import logging
 from SETTINGS import *
+import argparse
+import pandas as pd
+from tqdm import tqdm
+import logging
+import argparse
+from SETTINGS import *
 import pandas as pd
 from tqdm import tqdm
 
@@ -7,16 +13,27 @@ from tqdm import tqdm
 # Configure logging
 # --------------------------
 logging.basicConfig(
-    filename="tracker_setup.log",           # file to write logs
+    filename="tracker_setup.log",      # file to write logs
     filemode="a",                      # "a" = append, "w" = overwrite
     level=logging.INFO,                # log INFO and above
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-YEARS = list(range(1999, 2025))
+# --------------------------
+# Parse arguments
+# --------------------------
+parser = argparse.ArgumentParser(description="Set up tracker folders")
+parser.add_argument(
+    "--year",
+    type=int,
+    help="Optional: a single year to run (e.g., --year 2010)"
+)
+args = parser.parse_args()
 
-for year in YEARS:
+years = [args.year] if args.year else YEARS
+
+for year in years:
     logging.info(f"Loading universe_{year}.csv ...")
     universe_year = pd.read_csv(INDEX / f"universe_{year}.csv", low_memory=False)
     logging.info(f"Loaded universe_{year}.csv!")

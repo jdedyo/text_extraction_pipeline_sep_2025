@@ -114,15 +114,18 @@ if __name__ == "__main__":
             t = Tracker(p)
 
             if not check_valid_pdf(t):
+                t.get_pdf_path().unlink(missing_ok=True)
                 continue
             
             try:
                 page_num = get_plan_page_num(t)
             except:
                 t.update_status(PDF_READER_FAILED, traceback.format_exc())
+                t.get_pdf_path().unlink(missing_ok=True)
                 continue
 
             if page_num == -1:
+                t.get_pdf_path().unlink(missing_ok=True)
                 continue
             
             selection_path = save_selection(t, page_num)
@@ -136,5 +139,8 @@ if __name__ == "__main__":
             # save txt file and overwrite anything already stored in it
             else:
                 t.update_status(PROCESSED, text, overwrite=True)
+
+            selection_path.unlink(missing_ok=True)
+            t.get_pdf_path().unlink(missing_ok=True)
 
             print(text[:500])

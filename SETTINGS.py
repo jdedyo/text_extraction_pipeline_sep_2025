@@ -4,12 +4,13 @@ DOL_INDEX_FILES = Path("./index_files/dol_index_files")
 YEARS = list(range(1999, 2025))
 
 INDEX = Path("/nfs/roberts/project/pi_co337/jmd324/text_extraction_pipeline_sep_2025/index_files/universe")
-if not INDEX.exists():
-    raise FileNotFoundError(f"Index files path does not exist: {INDEX}")
+INDEX.mkdir(parents=True, exist_ok=True)
+# if not any(INDEX.iterdir()):
+#     raise FileNotFoundError(f"Index directory is empty: {INDEX}")
 
-MERGE_INDEX = INDEX.parent / 'merged_ppp_5500_data_compressed_2025.dta'
+MERGE_INDEX = INDEX.parent / 'working_dataset.dta'
 
-TRACKER = Path.home() / "scratch_pi_co337/jmd324/txt_extraction_pipeline_tracker"
+TRACKER = Path.home() / "scratch_pi_co337/jmd324/text_extraction_pipeline_tracker"
 TRACKER.mkdir(parents=True, exist_ok=True)
 
 QUEUE = TRACKER / "queue"
@@ -42,6 +43,8 @@ SELECTION = TRACKER / "selection"
 SELECTION.mkdir(parents=True, exist_ok=True)
 
 PROCESS_BATCH_SIZE = 20
+
+DOWNLOAD_AND_PROCESS_BATCH_SIZE = 20
 
 TEMP = TRACKER / "temp"
 TEMP.mkdir(parents=True, exist_ok=True)
@@ -86,3 +89,10 @@ TERMS = [
 
 RECORDS = INDEX.parent / "records"
 RECORDS.mkdir(parents=True, exist_ok=True)
+
+ALL_OCR = INDEX.parent.parent / "results"
+ALL_OCR.mkdir(parents=True, exist_ok=True)
+
+OCR_TEXT_COL = 'ocr_text'
+
+LLM_TRAIN_DATA_PATH = Path("/home/jmd324/project_pi_co337/jmd324/llm_pipeline_oct_2025/train_data/sample_7500_v22Mar24.dta")
