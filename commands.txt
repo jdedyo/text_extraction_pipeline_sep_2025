@@ -2,3 +2,8 @@ sbatch --job-name=delete_file --partition=day --time=5:00:00 --wrap="rm -rf file
 
 
 sbatch --job-name=delete_file --partition=day --time=5:00:00 --wrap="rm -rf /nfs/roberts/scratch/pi_co337/jmd324/text_extraction_pipeline_tracker"
+
+
+YEARS = range(2000, 2013)
+for y in YEARS:
+    sbatch --job-name=delete_pdfs_${y} --partition=day --time=2:00:00 --wrap="rm -rf /nfs/roberts/scratch/pi_co337/jmd324/text_extraction_pipeline_tracker/downloaded/y"

@@ -8,7 +8,7 @@ INDEX.mkdir(parents=True, exist_ok=True)
 # if not any(INDEX.iterdir()):
 #     raise FileNotFoundError(f"Index directory is empty: {INDEX}")
 
-MERGE_INDEX = INDEX.parent / 'working_dataset.dta'
+MERGE_INDEX = INDEX.parent / 'merged_working_dataset_for_johnny_LLM.dta'
 
 TRACKER = Path.home() / "scratch_pi_co337/jmd324/text_extraction_pipeline_tracker"
 TRACKER.mkdir(parents=True, exist_ok=True)
@@ -96,3 +96,4 @@ ALL_OCR.mkdir(parents=True, exist_ok=True)
 OCR_TEXT_COL = 'ocr_text'
 
 LLM_TRAIN_DATA_PATH = Path("/home/jmd324/project_pi_co337/jmd324/llm_pipeline_oct_2025/train_data/sample_7500_v22Mar24.dta")
+# TODO: use updated train data

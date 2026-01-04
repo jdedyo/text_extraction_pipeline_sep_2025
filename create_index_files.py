@@ -4,7 +4,8 @@ import csv
 from pathlib import Path
 from tqdm import tqdm
 from SETTINGS import *
-
+from typing import List
+import warnings
 # %%
 def load_dol_file_to_df(year: int, index_files_path: Path):
 # path to your file
@@ -34,18 +35,34 @@ def load_dol_file_to_df(year: int, index_files_path: Path):
     return df
 
 def get_acceptable_ack_ids_from_index_file(filepath: Path):
-    print("Loading index file...\n")
+    print(f"Loading index file {filepath}...\n")
 
-    df = pd.read_stata(filepath, columns=["ack_id", "pension_benefit_code"])
-
-    df = df.loc[df.pension_benefit_code.str.contains("2J|2L", na=False)]
-    df["ack_id"] = df["ack_id"].astype(str)
-    df["ack_id"] = df["ack_id"].map(lambda x: x.strip())
+    try:
+        df = pd.read_stata(filepath, columns=["ack_id", "pension_benefit_code"])
+        print(f"There are {len(df)} ack_ids in the file...\n")
+        df = df.loc[df.pension_benefit_code.str.contains("2J|2L", na=False)]
+        print(f"There are {len(df)} DC plan ack_ids in the file...\n")
+    except:
+        df = pd.read_stata(filepath, columns=["ack_id"])
+        warnings.warn(f"Could not find pension_benefit_code column in {filepath}. Assuming all are DC plans...\n", stacklevel=2)
+        print(f"There are {len(df)} DC plan ack_ids in the file...\n")
+    
+    
+    df["ack_id"] = df["ack_id"].astype(str).str.strip()
+    # df["ack_id"] = df["ack_id"].map(lambda x: x.strip())
 
     good_ack_ids = set(df.ack_id.tolist())
-
+    print(f"Returning {len(good_ack_ids)} ack_ids...\n")
+    
     print("Finished loading index file...\n")
 
+    return good_ack_ids
+
+
+def get_acceptable_ack_ids_from_index_files_list(pathlist: List[Path]):
+    good_ack_ids = set()
+    for p in pathlist:
+        good_ack_ids.update(get_acceptable_ack_ids_from_index_file(p))
     return good_ack_ids
 
 
@@ -57,7 +74,7 @@ save_path.mkdir(parents=True, exist_ok=True)
 
 if __name__ == '__main__':
     
-    good_ack_ids = get_acceptable_ack_ids_from_index_file(MERGE_INDEX)
+    good_ack_ids = get_acceptable_ack_ids_from_index_files_list([MERGE_INDEX, LLM_TRAIN_DATA_PATH])
 
     for year in tqdm(
         YEARS,
